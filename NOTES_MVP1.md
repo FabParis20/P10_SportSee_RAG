@@ -4,6 +4,7 @@
 - Je préconise uv comme gestionnaire de dépendance --> A adapter dans le README
 - Le processus d'OCRisation des pdf est particulièrement long. Nous n'avons pas des pdf natifs, ceci explique peut être cela -> Envisager une autre façon de récolter les sources depuis Reddit ?
 - D'ailleurs bien déterminer les rôles : quand, et quoi mettre dans les inputs, par qui ? A quelle fréquence ? Quels sont les indicateurs permettant de tracer la bonne alimentation du système. Veille à envisager ? Pas mal de questions sur le sujet
+_ Streamlit est utilisé paour l'interface utilisateur
 
 ## Fait
 - Test de run pour data_loader.py et indexer.py
