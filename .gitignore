@@ -46,3 +46,6 @@ data/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+
+# Fichiers de notes MVP (usage interne uniquement)
+NOTES_MVP*.md
