@@ -120,52 +120,47 @@ graph TB
 ### Schéma 2 : Flux de données
 
 ```mermaid
-graph LR
-    subgraph "📐 PHASE 1 - AUDIT"
-        MVP1[MVP1<br/>Compréhension<br/>Schéma UML actuel<br/>Inventaire fichiers]
-        MVP2[MVP2<br/>Stabilisation<br/>Requirements.txt<br/>README install]
-        MVP3[MVP3<br/>Audit fonctionnel<br/>Tests scripts<br/>Logging]
-    end
+graph TD
+    A[📂 inputs/<br/>4 PDF Reddit<br/>1 Excel NBA] -->|1. Indexation| B[data_loader.py]
     
-    subgraph "🔍 PHASE 2 - ÉVALUATION V1"
-        MVP4[MVP4<br/>Setup RAGAS<br/>Dataset questions<br/>Script eval]
-        MVP5[MVP5<br/>Analyse RAGAS<br/>Interpréter scores<br/>Tableau synthèse]
-    end
+    B -->|Extraction texte<br/>+ OCR si besoin| C[Documents<br/>Liste de dict<br/>page_content + metadata]
     
-    subgraph "🗄️ PHASE 3 - ENRICHISSEMENT SQL"
-        MVP6[MVP6<br/>Design SQL<br/>Schéma relationnel<br/>Ingestion Excel]
-        MVP7[MVP7<br/>Tool SQL<br/>sql_tool.py<br/>Intégration agent]
-    end
+    C -->|2. Chunking| D[vector_store.py<br/>_split_documents_to_chunks]
     
-    subgraph "📊 PHASE 4 - VALIDATION"
-        MVP8[MVP8<br/>Évaluation finale<br/>RAGAS V2<br/>Comparaison avant/après]
-    end
+    D -->|Chunks<br/>1500 car / overlap 150| E[vector_store.py<br/>_generate_embeddings]
     
-    subgraph "📦 LIVRABLES"
-        FINAL[Repo Git structuré<br/>3 schémas UML<br/>Rapport RAG<br/>Scripts documentés]
-    end
+    E -->|API Mistral<br/>mistral-embed| F[Embeddings<br/>Vecteurs float32]
     
-    MVP1 --> MVP2
-    MVP2 --> MVP3
-    MVP3 --> MVP4
-    MVP4 --> MVP5
-    MVP5 --> MVP6
-    MVP6 --> MVP7
-    MVP7 --> MVP8
-    MVP8 --> FINAL
+    F -->|3. Indexation| G[FAISS IndexFlatIP<br/>Similarité cosinus]
     
-    FINAL --> SOUT[🎓 SOUTENANCE]
+    G -->|Sauvegarde| H[(vector_db/<br/>faiss_index.idx<br/>document_chunks.pkl)]
     
-    style MVP1 fill:#fff9c4
-    style MVP2 fill:#fff9c4
-    style MVP3 fill:#fff9c4
-    style MVP4 fill:#b3e5fc
-    style MVP5 fill:#b3e5fc
-    style MVP6 fill:#c5cae9
-    style MVP7 fill:#c5cae9
-    style MVP8 fill:#c8e6c9
-    style FINAL fill:#ffccbc
-    style SOUT fill:#f48fb1
+    I[👤 Utilisateur<br/>Question via<br/>Streamlit] -->|LOG1: Question<br/>+ Start Timer| J[vector_store.py<br/>search]
+    
+    H -->|Charge index| J
+    
+    J -->|LOG2: Chunks<br/>+ Sources + Scores| K[MistralChat.py<br/>Contexte enrichi]
+    
+    K -->|LOG3: Prompt complet| L[Mistral API<br/>mistral-small-latest]
+    
+    L -->|LOG4: Réponse brute| M[💬 Réponse<br/>affichée dans chat]
+    
+    M -->|LOG5: End Timer<br/>+ Temps total| N[📊 Logs complets<br/>Terminal + Fichier]
+    
+    style A fill:#e1f5fe
+    style B fill:#b2dfdb
+    style C fill:#fff9c4
+    style D fill:#f8bbd0
+    style E fill:#f8bbd0
+    style F fill:#ce93d8
+    style G fill:#ce93d8
+    style H fill:#e1f5fe
+    style I fill:#ffccbc
+    style J fill:#f8bbd0
+    style K fill:#c5cae9
+    style L fill:#90caf9
+    style M fill:#a5d6a7
+    style N fill:#ffeb3b
 ```
 
 
@@ -206,8 +201,8 @@ P10_DSML/
 ## 🚧 Roadmap
 
 - [x] **MVP1** : Architecture de base + indexation PDF Reddit
-- [ ] **MVP2** : Stabilisation environnement (tests, logging)
-- [ ] **MVP3** : Audit fonctionnel
+- [x] **MVP2** : Stabilisation environnement (tests, logging)
+- [x] **MVP3** : Audit fonctionnel
 - [ ] **MVP4-5** : Évaluation RAGAS
 - [ ] **MVP6-7** : Intégration base SQL + données Excel
 - [ ] **MVP8** : Évaluation finale + rapport comparatif

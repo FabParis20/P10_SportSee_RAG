@@ -38,3 +38,6 @@ DATABASE_URL = f"sqlite:///{DATABASE_FILE}" # URL pour SQLAlchemy
 # --- Configuration de l'Application ---
 APP_TITLE = "NBA Analyst AI"
 NAME = "NBA" # Nom à personnaliser dans l'interface
+
+# Configuration du logging
+APPEND_LOGS = False  # False = écrase les logs à chaque session | True = accumule tous les logs

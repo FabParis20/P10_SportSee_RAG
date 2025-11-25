@@ -56,6 +56,10 @@ class VectorStoreManager:
         all_chunks = []
         doc_counter = 0
         for doc in documents:
+            # AJOUT : NETTOYER LES NULL BYTES À LA SOURCE
+            clean_content = doc["page_content"].replace('\x00', '').replace('\ufeff', '')
+            doc["page_content"] = clean_content
+
             # Convertit notre format de document en format Langchain Document pour le splitter
             langchain_doc = Document(page_content=doc["page_content"], metadata=doc["metadata"])
             chunks = text_splitter.split_documents([langchain_doc])
