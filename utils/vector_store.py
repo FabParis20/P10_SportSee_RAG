@@ -5,10 +5,12 @@ import faiss
 import numpy as np
 import logging
 from typing import List, Dict, Tuple, Optional
-from mistralai.client import MistralClient
-from mistralai.exceptions import MistralAPIException
+# from mistralai.client import MistralClient 🗒️= ancienne version
+# from mistralai.exceptions import MistralAPIException 🗒️= ancienne version
+from mistralai import Mistral
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document # Utilisé pour le format attendu par le splitter
+import time
 
 from .config import (
     MISTRAL_API_KEY, EMBEDDING_MODEL, EMBEDDING_BATCH_SIZE,
@@ -23,7 +25,8 @@ class VectorStoreManager:
     def __init__(self):
         self.index: Optional[faiss.Index] = None
         self.document_chunks: List[Dict[str, any]] = []
-        self.mistral_client = MistralClient(api_key=MISTRAL_API_KEY)
+        # self.mistral_client = MistralClient(api_key=MISTRAL_API_KEY) 🗒️ ancienne version
+        self.mistral_client = Mistral(api_key=MISTRAL_API_KEY)
         self._load_index_and_chunks()
 
     def _load_index_and_chunks(self):
@@ -101,44 +104,48 @@ class VectorStoreManager:
             texts_to_embed = [chunk["text"] for chunk in batch_chunks]
 
             logging.info(f"  Traitement du lot {batch_num}/{total_batches} ({len(texts_to_embed)} chunks)")
-            try:
-                response = self.mistral_client.embeddings(
-                    model=EMBEDDING_MODEL,
-                    input=texts_to_embed
-                )
-                batch_embeddings = [data.embedding for data in response.data]
-                all_embeddings.extend(batch_embeddings)
-            except MistralAPIException as e:
-                logging.error(f"Erreur API Mistral lors de la génération d'embeddings (lot {batch_num}): {e}")
-                logging.error(f"  Détails: Status Code={e.status_code}, Message={e.message}")
-            except Exception as e:
-                logging.error(f"Erreur inattendue lors de la génération d'embeddings (lot {batch_num}): {e}")
-                 # Gérer l'erreur: ici on ajoute des vecteurs nuls pour ne pas bloquer
-                num_failed = len(texts_to_embed)
-                if all_embeddings: # Si on a déjà des embeddings, on prend la dimension du premier
-                    dim = len(all_embeddings[0])
-                else: # Sinon, on ne peut pas déterminer la dimension, on saute ce lot
-                     logging.error("Impossible de déterminer la dimension des embeddings, saut du lot.")
-                     continue
-                logging.warning(f"Ajout de {num_failed} vecteurs nuls de dimension {dim} pour le lot échoué.")
-                all_embeddings.extend([np.zeros(dim, dtype='float32')] * num_failed)
-
-            except Exception as e:
-                logging.error(f"Erreur inattendue lors de la génération d'embeddings (lot {batch_num}): {e}")
-                # Gérer comme ci-dessus
+            
+            # RETRY AVEC EXPONENTIAL BACKOFF
+            import time
+            max_retries = 3
+            retry_delay = 2
+            batch_success = False
+            
+            for attempt in range(max_retries):
+                try:
+                    response = self.mistral_client.embeddings.create(
+                        model=EMBEDDING_MODEL,
+                        inputs=texts_to_embed
+                    )
+                    batch_embeddings = [data.embedding for data in response.data]
+                    all_embeddings.extend(batch_embeddings)
+                    batch_success = True
+                    break  # ✅ Succès, on sort de la boucle retry
+                    
+                except Exception as e:
+                    if "429" in str(e) and attempt < max_retries - 1:
+                        wait_time = retry_delay * (2 ** attempt)
+                        logging.warning(f"⚠️ Rate limit 429 (lot {batch_num}) - Attente {wait_time}s avant retry {attempt+2}/{max_retries}")
+                        time.sleep(wait_time)
+                    else:
+                        # Dernière tentative échouée OU autre erreur
+                        logging.error(f"Erreur lors de la génération d'embeddings (lot {batch_num}): {e}")
+                        break
+            
+            # Si le batch a échoué après tous les retries, ajouter des vecteurs nuls
+            if not batch_success:
                 num_failed = len(texts_to_embed)
                 if all_embeddings:
                     dim = len(all_embeddings[0])
+                    logging.warning(f"Ajout de {num_failed} vecteurs nuls de dimension {dim} pour le lot échoué.")
+                    all_embeddings.extend([np.zeros(dim, dtype='float32')] * num_failed)
                 else:
-                     logging.error("Impossible de déterminer la dimension des embeddings, saut du lot.")
-                     continue
-                logging.warning(f"Ajout de {num_failed} vecteurs nuls de dimension {dim} pour le lot échoué.")
-                all_embeddings.extend([np.zeros(dim, dtype='float32')] * num_failed)
-
+                    logging.error("Impossible de déterminer la dimension des embeddings, saut du lot.")
+                    continue
 
         if not all_embeddings:
-             logging.error("Aucun embedding n'a pu être généré.")
-             return None
+            logging.error("Aucun embedding n'a pu être généré.")
+            return None
 
         embeddings_array = np.array(all_embeddings).astype('float32')
         logging.info(f"Embeddings générés avec succès. Shape: {embeddings_array.shape}")
@@ -219,60 +226,68 @@ class VectorStoreManager:
             logging.warning("Recherche impossible: l'index Faiss n'est pas chargé ou est vide.")
             return []
         if not MISTRAL_API_KEY:
-             logging.error("Recherche impossible: MISTRAL_API_KEY manquante pour générer l'embedding de la requête.")
-             return []
+            logging.error("Recherche impossible: MISTRAL_API_KEY manquante pour générer l'embedding de la requête.")
+            return []
 
         logging.info(f"Recherche des {k} chunks les plus pertinents pour: '{query_text}'")
         try:
-            # 1. Générer l'embedding de la requête
-            response = self.mistral_client.embeddings(
-                model=EMBEDDING_MODEL,
-                input=[query_text] # La requête doit être une liste
-            )
+            # 1. Générer l'embedding de la requête AVEC RETRY
+            import time
+            max_retries = 3
+            retry_delay = 2
+            
+            for attempt in range(max_retries):
+                try:
+                    response = self.mistral_client.embeddings.create(
+                        model=EMBEDDING_MODEL,
+                        inputs=[query_text]
+                    )
+                    break  # ✅ Succès, on sort de la boucle
+                    
+                except Exception as e:
+                    if "429" in str(e) and attempt < max_retries - 1:
+                        wait_time = retry_delay * (2 ** attempt)
+                        logging.warning(f"⚠️ Rate limit 429 - Attente {wait_time}s avant retry {attempt+2}/{max_retries}")
+                        time.sleep(wait_time)
+                    else:
+                        raise
+            
             query_embedding = np.array([response.data[0].embedding]).astype('float32')
 
             # Normaliser l'embedding de la requête pour la similarité cosinus
             faiss.normalize_L2(query_embedding)
 
             # 2. Rechercher dans l'index Faiss
-            # Pour IndexFlatIP: scores = produit scalaire (plus grand = meilleur)
-            # indices: index des chunks correspondants dans self.document_chunks
-            # Demander plus de résultats si un score minimum est spécifié
             search_k = k * 3 if min_score is not None else k
             scores, indices = self.index.search(query_embedding, search_k)
 
             # 3. Formater les résultats
             results = []
-            if indices.size > 0: # Vérifier s'il y a des résultats
+            if indices.size > 0:
                 for i, idx in enumerate(indices[0]):
-                    if 0 <= idx < len(self.document_chunks): # Vérifier la validité de l'index
+                    if 0 <= idx < len(self.document_chunks):
                         chunk = self.document_chunks[idx]
-                        # Convertir le score en similarité (0-1)
-                        # Pour IndexFlatIP avec vecteurs normalisés, le score est déjà entre -1 et 1
-                        # On le convertit en pourcentage (0-100%)
                         raw_score = float(scores[0][i])
                         similarity = raw_score * 100
 
-                        # Filtrer les résultats en fonction du score minimum
-                        # Le min_score est entre 0 et 1, mais similarity est en pourcentage (0-100)
                         min_score_percent = min_score * 100 if min_score is not None else 0
                         if min_score is not None and similarity < min_score_percent:
                             logging.debug(f"Document filtré (score {similarity:.2f}% < minimum {min_score_percent:.2f}%)")
                             continue
 
                         results.append({
-                            "score": similarity, # Score de similarité en pourcentage
-                            "raw_score": raw_score, # Score brut pour débogage
+                            "score": similarity,
+                            "raw_score": raw_score,
                             "text": chunk["text"],
-                            "metadata": chunk["metadata"] # Contient source, category, chunk_id_in_doc, start_index etc.
+                            "metadata": chunk["metadata"]
                         })
                     else:
                         logging.warning(f"Index Faiss {idx} hors limites (taille des chunks: {len(self.document_chunks)}).")
 
-            # Trier par score (similarité la plus élevée en premier)
+            # Trier par score
             results.sort(key=lambda x: x["score"], reverse=True)
 
-            # Limiter au nombre demandé (k) si nécessaire
+            # Limiter au nombre demandé
             if len(results) > k:
                 results = results[:k]
 
@@ -284,10 +299,6 @@ class VectorStoreManager:
 
             return results
 
-        except MistralAPIException as e:
-            logging.error(f"Erreur API Mistral lors de la génération de l'embedding de la requête: {e}")
-            logging.error(f"  Détails: Status Code={e.status_code}, Message={e.message}")
-            return []
         except Exception as e:
             logging.error(f"Erreur inattendue lors de la recherche: {e}")
             return []
