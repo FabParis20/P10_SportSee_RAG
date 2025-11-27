@@ -8,12 +8,19 @@ Ce script :
 3. Collecte les réponses et contexts
 4. Évalue avec RAGAS (Faithfulness, Answer Relevancy, Context Precision, Context Recall)
 5. Sauvegarde les résultats dans ragas_results.json
+
+AMÉLIORATIONS :
+- Sauvegarde intermédiaire après génération des réponses
+- Sauvegarde intermédiaire après évaluation RAGAS
+- Ajout du champ "type" dans detailed_results
+- Prints de debug complets
 """
 
 import json
 import os
 import sys
 from pathlib import Path
+import numpy as np
 
 # Ajouter le chemin du projet pour importer les modules
 project_root = Path(__file__).parent.parent
@@ -34,6 +41,7 @@ try:
         context_precision,
         context_recall
     )
+    from ragas.run_config import RunConfig
     from datasets import Dataset
     from langchain_mistralai import ChatMistralAI, MistralAIEmbeddings
 except ImportError:
@@ -114,11 +122,19 @@ RÉPONSE:"""
 def extract_score(value):
     """
     Extrait un score float depuis la valeur RAGAS.
-    Gère le cas où RAGAS retourne une liste ou un float.
+    RAGAS retourne une liste de scores (un par question).
+    On calcule la MOYENNE.
     """
+    print(f"🔍 DEBUG extract_score() - Type: {type(value)}, Valeur: {value}")
+    
     if isinstance(value, list):
-        return float(value[0]) if len(value) > 0 else 0.0
-    return float(value)
+        moyenne = float(np.mean(value))
+        print(f"   → Liste détectée, calcul moyenne: {moyenne}")
+        return moyenne
+    
+    score = float(value)
+    print(f"   → Valeur simple: {score}")
+    return score
 
 
 def run_evaluation(dataset_path: str, output_path: str):
@@ -175,8 +191,10 @@ def run_evaluation(dataset_path: str, output_path: str):
             answer = generate_answer_with_mistral(question, contexts)
             print(f"✓ Réponse générée ({len(answer)} caractères)")
             
-            # Stocker pour RAGAS
+            # Stocker pour RAGAS (AVEC LE TYPE!)
             results.append({
+                "question_id": q_id,
+                "question_type": q_type,  # ← CHAMP AJOUTÉ
                 "question": question,
                 "answer": answer,
                 "contexts": contexts,
@@ -187,11 +205,23 @@ def run_evaluation(dataset_path: str, output_path: str):
             print(f"❌ Erreur pour question #{q_id} : {e}")
             # Ajouter un résultat vide pour ne pas bloquer l'évaluation
             results.append({
+                "question_id": q_id,
+                "question_type": q_type,  # ← CHAMP AJOUTÉ ICI AUSSI
                 "question": question,
                 "answer": f"[ERREUR: {str(e)}]",
                 "contexts": [""],
                 "ground_truth": ground_truth
             })
+    
+    # 💾 SAUVEGARDE INTERMÉDIAIRE 1 : Réponses générées
+    intermediate_file_1 = "data/evaluation/ragas_intermediate_answers.json"
+    print(f"\n💾 Sauvegarde intermédiaire 1 : {intermediate_file_1}")
+    with open(intermediate_file_1, 'w', encoding='utf-8') as f:
+        json.dump({
+            "metadata": {"num_questions": len(questions_data), "timestamp": "2025-11-26"},
+            "results": results
+        }, f, indent=2, ensure_ascii=False)
+    print("✓ Sauvegarde intermédiaire 1 OK - Les réponses sont sécurisées!")
       
     # 4. Convertir en Dataset RAGAS
     print("\n📦 Préparation du dataset RAGAS...")
@@ -219,6 +249,24 @@ def run_evaluation(dataset_path: str, output_path: str):
             mistral_api_key=MISTRAL_API_KEY
         )
         
+        # 🔧 Configuration optimisée pour Mistral API (éviter 429 et TimeoutError)
+        print("\n⚙️  Configuration RunConfig pour Mistral API:")
+        print("   - timeout: 600s (10 minutes)")
+        print("   - max_retries: 20")
+        print("   - max_wait: 120s entre retries")
+        print("   - max_workers: 2 (limite parallélisme pour éviter 429)")
+        print("   - log_tenacity: True (logs des retries)")
+        
+        config_mistral_safe = RunConfig(
+            timeout=600,           # 10 minutes au lieu de 3 (défaut 180s)
+            max_retries=20,        # Plus de tentatives (défaut 10)
+            max_wait=120,          # Attente plus longue entre retries (défaut 60s)
+            max_workers=2,         # TRÈS IMPORTANT : 2 au lieu de 16 pour éviter rate limit!
+            log_tenacity=True      # Logs pour voir les retries
+        )
+        
+        print("\n🚀 Lancement de l'évaluation (peut prendre 15-30 minutes)...\n")
+        
         evaluation_result = evaluate(
             ragas_dataset,
             metrics=[
@@ -228,16 +276,66 @@ def run_evaluation(dataset_path: str, output_path: str):
                 context_recall
             ],
             llm=mistral_llm,
-            embeddings=mistral_embeddings
+            embeddings=mistral_embeddings,
+            run_config=config_mistral_safe  # ← Configuration optimale ajoutée
         )
         
         print("\n" + "="*80)
-        print("📊 RÉSULTATS RAGAS")
+        print("📊 RÉSULTATS RAGAS BRUTS")
         print("="*80)
         print(evaluation_result)
         
-        # 6. Sauvegarder les résultats
-        print(f"\n💾 Sauvegarde des résultats dans : {output_path}")
+        # 🔍 DEBUG COMPLET - Structure de l'objet
+        print("\n" + "="*80)
+        print("🔍 DEBUG - STRUCTURE COMPLÈTE DE L'OBJET RAGAS")
+        print("="*80)
+        print(f"\n1️⃣ Type de l'objet:")
+        print(f"   {type(evaluation_result)}")
+        
+        print(f"\n2️⃣ Attributs disponibles (dir):")
+        attrs = [attr for attr in dir(evaluation_result) if not attr.startswith('_')]
+        for attr in attrs:
+            print(f"   - {attr}")
+        
+        print(f"\n3️⃣ Accès aux scores individuels (listes):")
+        print(f"   evaluation_result['faithfulness'] = {evaluation_result['faithfulness']}")
+        print(f"   Type: {type(evaluation_result['faithfulness'])}")
+        print(f"   Longueur: {len(evaluation_result['faithfulness'])}")
+        
+        print(f"\n   evaluation_result['answer_relevancy'] = {evaluation_result['answer_relevancy']}")
+        print(f"   Type: {type(evaluation_result['answer_relevancy'])}")
+        
+        print(f"\n   evaluation_result['context_precision'] = {evaluation_result['context_precision']}")
+        print(f"   Type: {type(evaluation_result['context_precision'])}")
+        
+        print(f"\n   evaluation_result['context_recall'] = {evaluation_result['context_recall']}")
+        print(f"   Type: {type(evaluation_result['context_recall'])}")
+        
+        # 💾 SAUVEGARDE INTERMÉDIAIRE 2 : Résultat évaluation RAGAS brut
+        intermediate_file_2 = "data/evaluation/ragas_intermediate_evaluation.json"
+        print(f"\n💾 Sauvegarde intermédiaire 2 : {intermediate_file_2}")
+        
+        # Convertir en format sérialisable
+        eval_data = {
+            "faithfulness_scores": [float(x) for x in evaluation_result['faithfulness']],
+            "answer_relevancy_scores": [float(x) for x in evaluation_result['answer_relevancy']],
+            "context_precision_scores": [float(x) for x in evaluation_result['context_precision']],
+            "context_recall_scores": [float(x) for x in evaluation_result['context_recall']]
+        }
+        
+        with open(intermediate_file_2, 'w', encoding='utf-8') as f:
+            json.dump(eval_data, f, indent=2)
+        print("✓ Sauvegarde intermédiaire 2 OK - L'évaluation RAGAS est sécurisée!")
+
+        # 6. Calculer scores moyens et sauvegarder résultats finaux
+        print(f"\n💾 Sauvegarde des résultats finaux dans : {output_path}")
+        
+        print("\n4️⃣ Calcul des scores moyens avec extract_score():")
+        
+        faithfulness_mean = extract_score(evaluation_result["faithfulness"])
+        answer_relevancy_mean = extract_score(evaluation_result["answer_relevancy"])
+        context_precision_mean = extract_score(evaluation_result["context_precision"])
+        context_recall_mean = extract_score(evaluation_result["context_recall"])
         
         # Convertir les résultats en dict pour JSON
         results_dict = {
@@ -248,22 +346,22 @@ def run_evaluation(dataset_path: str, output_path: str):
                 "search_k": SEARCH_K
             },
             "global_scores": {
-                "faithfulness": extract_score(evaluation_result["faithfulness"]),
-                "answer_relevancy": extract_score(evaluation_result["answer_relevancy"]),
-                "context_precision": extract_score(evaluation_result["context_precision"]),
-                "context_recall": extract_score(evaluation_result["context_recall"])
+                "faithfulness": faithfulness_mean,
+                "answer_relevancy": answer_relevancy_mean,
+                "context_precision": context_precision_mean,
+                "context_recall": context_recall_mean
             },
-            "detailed_results": results
+            "detailed_results": results  # Contient déjà question_type
         }
         
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(results_dict, f, indent=2, ensure_ascii=False)
         
-        print("✓ Résultats sauvegardés avec succès")
+        print("✓ Résultats finaux sauvegardés avec succès")
         
         # 7. Afficher un résumé
         print("\n" + "="*80)
-        print("📈 RÉSUMÉ")
+        print("📈 RÉSUMÉ FINAL")
         print("="*80)
         print(f"Faithfulness      : {results_dict['global_scores']['faithfulness']:.3f}")
         print(f"Answer Relevancy  : {results_dict['global_scores']['answer_relevancy']:.3f}")
@@ -272,8 +370,14 @@ def run_evaluation(dataset_path: str, output_path: str):
         
         temps_total = log_timer_end(temps_debut)
         print(f"\n⏱️  Temps total : {temps_total:.2f} secondes")
+        
+        print("\n" + "="*80)
+        print("✅ ÉVALUATION MVP4 TERMINÉE AVEC SUCCÈS !")
         print("="*80)
-        print("✅ Évaluation MVP4 terminée avec succès !")
+        print(f"\n📁 Fichiers générés:")
+        print(f"   1. {intermediate_file_1} (réponses)")
+        print(f"   2. {intermediate_file_2} (évaluation brute)")
+        print(f"   3. {output_path} (résultats finaux)")
         print("="*80)
         
     except Exception as e:
