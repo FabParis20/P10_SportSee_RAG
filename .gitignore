@@ -49,3 +49,6 @@ data/
 
 # Fichiers de notes MVP (usage interne uniquement)
 NOTES_MVP*.md
+
+# Guide de présentation shéma de flux SQl
+guide_presentation_schema_flux_SQL.md
