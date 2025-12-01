@@ -15,7 +15,7 @@ try:
         MISTRAL_API_KEY, MODEL_NAME, SEARCH_K,
         APP_TITLE, NAME
     )
-    from utils.vector_store import VectorStoreManager
+    from rag.vector_store import VectorStoreManager
 except ImportError as e:
     st.error(f"Erreur d'importation: {e}. Vérifiez la structure de vos dossiers et les fichiers dans 'utils'.")
     st.stop()

@@ -11,7 +11,7 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from utils.vector_store import VectorStoreManager
+from rag.vector_store import VectorStoreManager
 from utils.config import MISTRAL_API_KEY, MODEL_NAME, SEARCH_K
 import requests
 

@@ -26,7 +26,7 @@ import numpy as np
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from utils.vector_store import VectorStoreManager
+from rag.vector_store import VectorStoreManager
 from utils.config import MISTRAL_API_KEY, MODEL_NAME, SEARCH_K
 from utils.logger import setup_logger, log_timer_start, log_timer_end
 import requests
