@@ -22,6 +22,7 @@ Assistant conversationnel intelligent pour l'analyse de performances NBA. Le sys
 - **uv** (gestionnaire de paquets) : [Installation uv](https://github.com/astral-sh/uv)
 - **Compte Mistral AI** avec clé API : [Mistral AI](https://console.mistral.ai/home)
 - **EasyOCR** pour l'extraction de texte depuis PDF
+- **PostgreSQL 17** : Base de données pour statistiques NBA
 
 ---
 
@@ -178,22 +179,24 @@ graph TD
 
 ## 📁 Structure du projet
 ```
+- **PostgreSQL 17** : Base de données pour statistiques NBA
+```
+
+---
+
+## **3. Mettre à jour structure du projet (remplace la section) :**
+```
 P10_DSML/
 ├── MistralChat.py          # Interface Streamlit
 ├── indexer.py              # Orchestrateur indexation
-├── requirements.txt        # Dépendances Python
-├── pyproject.toml          # Configuration uv
-├── .env                    # Variables d'environnement (non versionné)
-├── inputs/                 # Sources de données
-│   ├── Reddit 1.pdf à 4.pdf   # Commentaires matchs NBA
-│   └── regular NBA.xlsx       # Statistiques joueurs
-├── vector_db/              # Index vectoriel FAISS
-│   ├── faiss_index.idx        # Index FAISS
-│   └── document_chunks.pkl    # Chunks sérialisés
-└── utils/                  # Modules utilitaires
-    ├── config.py
-    ├── data_loader.py
-    └── vector_store.py
+├── scripts/
+│   └── load_excel_to_db.py # Migration Excel → PostgreSQL
+├── data/
+│   ├── inputs/             # Sources (PDF + Excel)
+│   ├── config/             # Dictionnaire noms colonnes SQL
+│   └── evaluation/         # Dataset + résultats RAGAS
+├── vector_db/              # Index FAISS
+└── utils/                  # Modules (config, loader, vector_store, logger)
 ```
 
 ---
@@ -202,9 +205,12 @@ P10_DSML/
 
 - [x] **MVP1** : Architecture de base + indexation PDF Reddit
 - [x] **MVP2** : Stabilisation environnement (tests, logging)
-- [x] **MVP3** : Audit fonctionnel
-- [ ] **MVP4-5** : Évaluation RAGAS
-- [ ] **MVP6-7** : Intégration base SQL + données Excel
+- [x] **MVP3** : Audit fonctionnel avec logging complet
+- [x] **MVP4** : Création dataset d'évaluation (16 questions)
+- [x] **MVP5** : Évaluation RAGAS (faithfulness 79%, problèmes retrieval identifiés)
+- [x] **MVP6.1** : Migration Excel → PostgreSQL (569 joueurs, 30 équipes)
+- [ ] **MVP6.2-6.5** : SQL Tool + routage intelligent LLM
+- [ ] **MVP7** : Nouvelles questions d'évaluation
 - [ ] **MVP8** : Évaluation finale + rapport comparatif
 
 ---
