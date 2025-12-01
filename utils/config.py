@@ -41,3 +41,12 @@ NAME = "NBA" # Nom à personnaliser dans l'interface
 
 # Configuration du logging
 APPEND_LOGS = False  # False = écrase les logs à chaque session | True = accumule tous les logs
+
+# PostgreSQL Configuration (MVP6.1)
+DB_CONFIG = {
+    'host': os.getenv('POSTGRES_HOST', 'localhost'),
+    'port': int(os.getenv('POSTGRES_PORT', 5432)),
+    'user': os.getenv('POSTGRES_USER', 'postgres'),
+    'password': os.getenv('POSTGRES_PASSWORD', 'FabParis20'),
+    'database': os.getenv('POSTGRES_DATABASE', 'nba_stats')
+}
