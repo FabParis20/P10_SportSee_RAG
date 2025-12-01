@@ -17,6 +17,39 @@ logger = logging.getLogger(__name__)
 # Chemin vers le dictionnaire des colonnes SQL
 DICTIONNAIRE_PATH = project_root / "data" / "config" / "dictionnaire_enrichi.csv"
 
+# Chemin vers le fichier de log des classifications
+CLASSIFICATIONS_LOG = project_root / "logs" / "classifications.log"
+
+
+def log_classification_to_file(question: str, result: dict):
+    """
+    Log la classification dans un fichier dédié pour analyse post-mortem
+    
+    Args:
+        question: Question classifiée
+        result: Résultat de la classification
+    """
+    try:
+        # Créer le dossier logs s'il n'existe pas
+        CLASSIFICATIONS_LOG.parent.mkdir(exist_ok=True)
+        
+        # Formater l'entrée de log
+        log_entry = {
+            "timestamp": pd.Timestamp.now().isoformat(),
+            "question": question,
+            "source": result["source"],
+            "type": result["type"],
+            "confiance": result["confiance"],
+            "raison": result["raison"]
+        }
+        
+        # Écrire dans le fichier
+        with open(CLASSIFICATIONS_LOG, 'a', encoding='utf-8') as f:
+            f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
+            
+    except Exception as e:
+        logger.warning(f"Impossible de logger dans le fichier: {e}")
+
 
 def load_database_schema() -> str:
     """
@@ -82,6 +115,13 @@ RÈGLES DE CLASSIFICATION:
 - Si la question porte sur des OPINIONS, ANALYSES, ou DISCUSSIONS → FAISS
 - Si la question nécessite à la fois STATS + OPINIONS → MIXTE
 
+RÈGLES DE VÉRIFICATION DES STATISTIQUES (CRITIQUE):
+1. Si la question mentionne explicitement un acronyme de stat (ex: PER, VORP, PPG), vérifier d'ABORD s'il existe EXACTEMENT dans les colonnes ci-dessus
+2. Si l'acronyme n'existe PAS exactement → vérifier s'il pourrait être une faute de frappe évidente (ex: GPP → PPG, FT% → FG%)
+3. Si ce n'est PAS une faute de frappe ET que la stat n'existe pas → router vers FAISS
+4. ATTENTION : PER ≠ PIE (Player Efficiency Rating ≠ Player Impact Estimate - ce sont deux stats DIFFÉRENTES)
+5. EN CAS DE DOUTE sur l'existence d'une stat → router vers FAISS (principe de précaution)
+
 TÂCHE:
 Classifie cette question vers SQL, FAISS, ou MIXTE.
 
@@ -114,7 +154,15 @@ RÉPONDS UNIQUEMENT avec ce JSON (rien d'autre):
         # Parser le JSON
         result = json.loads(response_text)
         
+        # Logging détaillé de la classification
         logger.info(f"Classification: {result['source']} (confiance: {result['confiance']})")
+        logger.debug(f"  Type: {result['type']}")
+        logger.debug(f"  Raison: {result['raison']}")
+        logger.debug(f"  Question: {question[:100]}...")
+        
+        # Logger dans fichier dédié pour analyse
+        log_classification_to_file(question, result)
+        
         return result
         
     except json.JSONDecodeError as e:
