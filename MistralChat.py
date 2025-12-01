@@ -2,8 +2,7 @@
 import streamlit as st
 import os
 import logging
-from mistralai.client import MistralClient
-from mistralai.models.chat_completion import ChatMessage
+from mistralai import Mistral
 from dotenv import load_dotenv
 from utils.logger import setup_logger, log_timer_start, log_timer_end, log_retrieval, log_generation
 
@@ -29,7 +28,7 @@ if not api_key:
     st.stop()
 
 try:
-    client = MistralClient(api_key=api_key)
+    client = Mistral(api_key=api_key)
     logging.info("Client Mistral initialisé.")
 except Exception as e:
     st.error(f"Erreur lors de l'initialisation du client Mistral : {e}")
@@ -79,7 +78,7 @@ if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "assistant", "content": f"Bonjour ! Je suis votre analyste IA pour la {NAME}. Posez-moi vos questions sur les équipes, les joueurs ou les statistiques, et je vous répondrai en me basant sur les données les plus récentes."}]
 
 # --- Fonctions ---
-def generer_reponse(prompt_messages: list[ChatMessage]) -> str:
+def generer_reponse(prompt_messages: list[dict]) -> str:
     """Envoie le prompt à l'API Mistral"""
     if not prompt_messages:
          logging.warning("Tentative de génération de réponse avec un prompt vide.")
@@ -87,7 +86,7 @@ def generer_reponse(prompt_messages: list[ChatMessage]) -> str:
     try:
         logging.info(f"Appel à l'API Mistral modèle '{model}' avec {len(prompt_messages)} message(s).")
         
-        response = client.chat(
+        response = client.chat.complete(
             model=model,
             messages=prompt_messages,
             temperature=0.1,
@@ -156,7 +155,7 @@ if prompt := st.chat_input(f"Posez votre question sur la {NAME}..."):
 
     # 5. Construire le prompt final
     final_prompt_for_llm = SYSTEM_PROMPT.format(context_str=context_str, question=prompt)
-    messages_for_api = [ChatMessage(role="user", content=final_prompt_for_llm)]
+    messages_for_api = [{"role": "user", "content": final_prompt_for_llm}]
 
     # 6. Afficher indicateur + Générer la réponse
     with st.chat_message("assistant"):
