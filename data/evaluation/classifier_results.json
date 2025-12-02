@@ -1,0 +1,193 @@
+{
+  "precision_globale": 93.75,
+  "total_correct": 15,
+  "total": 16,
+  "stats_by_type": {
+    "reddit_piege": {
+      "correct": 2,
+      "total": 2
+    },
+    "reddit_only": {
+      "correct": 3,
+      "total": 3
+    },
+    "excel_piege": {
+      "correct": 2,
+      "total": 2
+    },
+    "excel_only": {
+      "correct": 4,
+      "total": 4
+    },
+    "mixte": {
+      "correct": 4,
+      "total": 4
+    },
+    "mixte_piege": {
+      "correct": 0,
+      "total": 1
+    }
+  },
+  "results": [
+    {
+      "id": 1,
+      "type": "reddit_piege",
+      "question": "What are the main criticisms about the Magic's offense?",
+      "expected": "FAISS",
+      "predicted": "FAISS",
+      "correct": true,
+      "confiance": 0.95,
+      "raison": "La question porte sur des critiques qualitatives de l'attaque des Magic, ce qui relève des opinions et analyses disponibles dans les discussions Reddit."
+    },
+    {
+      "id": 2,
+      "type": "reddit_only",
+      "question": "Why do some fans and media consider a potential Thunder vs Pacers Finals matchup...",
+      "expected": "FAISS",
+      "predicted": "FAISS",
+      "correct": true,
+      "confiance": 0.95,
+      "raison": "La question porte sur des opinions et analyses qualitatives de fans et médias, sans référence à des statistiques numériques spécifiques."
+    },
+    {
+      "id": 3,
+      "type": "reddit_only",
+      "question": "According to a statistical analysis, which player has the highest playoff rTS% (...",
+      "expected": "FAISS",
+      "predicted": "FAISS",
+      "correct": true,
+      "confiance": 0.85,
+      "raison": "La stat 'rTS%' (relative True Shooting percentage) n'existe pas dans PostgreSQL, donc on route vers FAISS pour une analyse qualitative ou une discussion Reddit."
+    },
+    {
+      "id": 4,
+      "type": "reddit_only",
+      "question": "Quelle équipe NBA a réussi à atteindre les finales sans avoir l'avantage du terr...",
+      "expected": "FAISS",
+      "predicted": "FAISS",
+      "correct": true,
+      "confiance": 0.85,
+      "raison": "La question porte sur un événement historique spécifique (finales NBA sans avantage du terrain) qui n'est pas une statistique numérique disponible dans PostgreSQL. Elle nécessite une analyse qualitative ou une recherche dans des discussions d'experts (FAISS)."
+    },
+    {
+      "id": 5,
+      "type": "excel_piege",
+      "question": "Who has the best PPG (Points Per Game) in the NBA regular season?",
+      "expected": "SQL",
+      "predicted": "SQL",
+      "correct": true,
+      "confiance": 0.95,
+      "raison": "PPG (Points Per Game) est disponible dans PostgreSQL (colonne 'pts')"
+    },
+    {
+      "id": 6,
+      "type": "excel_only",
+      "question": "Which player has the highest field goal percentage (FG%) among players who playe...",
+      "expected": "SQL",
+      "predicted": "SQL",
+      "correct": true,
+      "confiance": 0.95,
+      "raison": "La question demande une statistique numérique (FG%) disponible dans PostgreSQL, avec un filtre sur le nombre de matchs joués (gp >= 50)."
+    },
+    {
+      "id": 7,
+      "type": "excel_piege",
+      "question": "Which player has the best PER (Player Efficiency Rating) this season?",
+      "expected": "FAISS",
+      "predicted": "FAISS",
+      "correct": true,
+      "confiance": 0.95,
+      "raison": "PER (Player Efficiency Rating) n'existe pas dans PostgreSQL, donc on route vers FAISS"
+    },
+    {
+      "id": 8,
+      "type": "excel_only",
+      "question": "Quel joueur a le meilleur pourcentage de lancers francs (FT%) parmi ceux qui ont...",
+      "expected": "SQL",
+      "predicted": "SQL",
+      "correct": true,
+      "confiance": 0.95,
+      "raison": "La question demande une statistique numérique (FT%) disponible dans PostgreSQL, avec un filtre (au moins 200 lancers francs tentés)."
+    },
+    {
+      "id": 9,
+      "type": "mixte",
+      "question": "Based on both fan discussions and statistics, is Shai Gilgeous-Alexander's scori...",
+      "expected": "MIXTE",
+      "predicted": "MIXTE",
+      "correct": true,
+      "confiance": 0.85,
+      "raison": "La question combine des statistiques (efficacité de scoring) et des opinions (débat sur les fautes provoquées) nécessitant à la fois PostgreSQL et FAISS."
+    },
+    {
+      "id": 10,
+      "type": "mixte",
+      "question": "The Pacers surprised many by reaching the conference finals. Based on statistica...",
+      "expected": "MIXTE",
+      "predicted": "MIXTE",
+      "correct": true,
+      "confiance": 0.85,
+      "raison": "La question demande à la fois des preuves statistiques (données Excel/PostgreSQL) et des réactions de fans (Reddit)."
+    },
+    {
+      "id": 11,
+      "type": "mixte_piege",
+      "question": "What is the overall narrative and storyline about underdog teams in the playoffs...",
+      "expected": "MIXTE",
+      "predicted": "FAISS",
+      "correct": false,
+      "confiance": 0.95,
+      "raison": "La question porte sur une analyse narrative et qualitative des équipes surprises en playoffs, sans demande de statistiques numériques."
+    },
+    {
+      "id": 12,
+      "type": "mixte",
+      "question": "D'après les discussions Reddit et les statistiques, pourquoi Reggie Miller est-i...",
+      "expected": "MIXTE",
+      "predicted": "MIXTE",
+      "correct": true,
+      "confiance": 0.85,
+      "raison": "La question combine des statistiques (efficacité en playoffs) et des opinions/analyses (sous-estimation) nécessitant à la fois PostgreSQL et FAISS."
+    },
+    {
+      "id": 13,
+      "type": "excel_only",
+      "question": "Who are the top 3 players by total points (PTS) and what are their teams?",
+      "expected": "SQL",
+      "predicted": "SQL",
+      "correct": true,
+      "confiance": 0.95,
+      "raison": "La question demande les 3 meilleurs joueurs en points (PTS), une statistique disponible dans PostgreSQL."
+    },
+    {
+      "id": 14,
+      "type": "reddit_piege",
+      "question": "Quelles sont les stratégies défensives détaillées et les schémas tactiques spéci...",
+      "expected": "FAISS",
+      "predicted": "FAISS",
+      "correct": true,
+      "confiance": 0.95,
+      "raison": "La question porte sur des stratégies défensives et schémas tactiques, des analyses qualitatives non disponibles dans PostgreSQL."
+    },
+    {
+      "id": 15,
+      "type": "mixte",
+      "question": "Comparing Giannis Antetokounmpo's statistical performance with fan opinions from...",
+      "expected": "MIXTE",
+      "predicted": "MIXTE",
+      "correct": true,
+      "confiance": 0.95,
+      "raison": "La question demande à la fois des statistiques (performance) et des opinions (réputation sur Reddit)"
+    },
+    {
+      "id": 16,
+      "type": "excel_only",
+      "question": "Which team has the best overall win-loss record based on the player data?",
+      "expected": "SQL",
+      "predicted": "SQL",
+      "correct": true,
+      "confiance": 0.95,
+      "raison": "La question demande une statistique numérique (win-loss record) disponible dans PostgreSQL (colonnes 'wins' et 'losses')."
+    }
+  ]
+}
