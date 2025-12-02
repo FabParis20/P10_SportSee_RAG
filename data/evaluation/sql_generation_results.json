@@ -1,0 +1,318 @@
+{
+  "timestamp": "2025-12-02T15:34:11.471164",
+  "total_questions": 11,
+  "success_count": 11,
+  "success_rate": 100.0,
+  "results": [
+    {
+      "id": 5,
+      "question": "Who has the best PPG (Points Per Game) in the NBA regular season?",
+      "type": "excel_piege",
+      "status": "success",
+      "json_structure": {
+        "table": "player_stats",
+        "columns": [
+          "player",
+          "pts"
+        ],
+        "conditions": [],
+        "order_by": [
+          {
+            "column": "pts",
+            "direction": "DESC"
+          }
+        ],
+        "limit": 1
+      },
+      "sql_query": "SELECT player, pts FROM player_stats ORDER BY pts DESC LIMIT 1"
+    },
+    {
+      "id": 6,
+      "question": "Which player has the highest field goal percentage (FG%) among players who played at least 50 games?",
+      "type": "excel_only",
+      "status": "success",
+      "json_structure": {
+        "table": "player_stats",
+        "columns": [
+          "player",
+          "fg_pct"
+        ],
+        "conditions": [
+          {
+            "column": "gp",
+            "operator": ">=",
+            "value": 50
+          }
+        ],
+        "order_by": [
+          {
+            "column": "fg_pct",
+            "direction": "DESC"
+          }
+        ],
+        "limit": 1
+      },
+      "sql_query": "SELECT player, fg_pct FROM player_stats WHERE gp >= 50 ORDER BY fg_pct DESC LIMIT 1"
+    },
+    {
+      "id": 7,
+      "question": "Which player has the best PER (Player Efficiency Rating) this season?",
+      "type": "excel_piege",
+      "status": "success",
+      "json_structure": {
+        "table": "player_stats",
+        "columns": [
+          "player",
+          "pie"
+        ],
+        "conditions": [],
+        "order_by": [
+          {
+            "column": "pie",
+            "direction": "DESC"
+          }
+        ],
+        "limit": 1
+      },
+      "sql_query": "SELECT player, pie FROM player_stats ORDER BY pie DESC LIMIT 1"
+    },
+    {
+      "id": 8,
+      "question": "Quel joueur a le meilleur pourcentage de lancers francs (FT%) parmi ceux qui ont tenté au moins 200 lancers francs ?",
+      "type": "excel_only",
+      "status": "success",
+      "json_structure": {
+        "table": "player_stats",
+        "columns": [
+          "player",
+          "ft_pct",
+          "fta"
+        ],
+        "conditions": [
+          {
+            "column": "fta",
+            "operator": ">=",
+            "value": 200
+          }
+        ],
+        "order_by": [
+          {
+            "column": "ft_pct",
+            "direction": "DESC"
+          }
+        ],
+        "limit": 1
+      },
+      "sql_query": "SELECT player, ft_pct, fta FROM player_stats WHERE fta >= 200 ORDER BY ft_pct DESC LIMIT 1"
+    },
+    {
+      "id": 9,
+      "question": "Based on both fan discussions and statistics, is Shai Gilgeous-Alexander's scoring efficiency justified or is he primarily a 'foul merchant' as some Reddit users claim?",
+      "type": "mixte",
+      "status": "success",
+      "json_structure": {
+        "table": "player_stats",
+        "columns": [
+          "player",
+          "pts",
+          "fg_pct",
+          "three_p_pct",
+          "ft_pct",
+          "pf",
+          "efg_pct",
+          "ts_pct"
+        ],
+        "conditions": [
+          {
+            "column": "player",
+            "operator": "LIKE",
+            "value": "%Shai%"
+          }
+        ],
+        "order_by": [],
+        "limit": 1
+      },
+      "sql_query": "SELECT player, pts, fg_pct, three_p_pct, ft_pct, pf, efg_pct, ts_pct FROM player_stats WHERE player LIKE '%Shai%' LIMIT 1"
+    },
+    {
+      "id": 10,
+      "question": "The Pacers surprised many by reaching the conference finals. Based on statistical evidence from the Excel data and fan reactions from Reddit, what makes them competitive despite being considered underdogs?",
+      "type": "mixte",
+      "status": "success",
+      "json_structure": {
+        "table": "player_stats",
+        "columns": [
+          "player",
+          "team",
+          "pts",
+          "reb",
+          "ast",
+          "net_rtg",
+          "off_rtg",
+          "def_rtg",
+          "plus__minus",
+          "dd2",
+          "td3"
+        ],
+        "conditions": [
+          {
+            "column": "team",
+            "operator": "=",
+            "value": "IND"
+          }
+        ],
+        "order_by": [
+          {
+            "column": "pts",
+            "direction": "DESC"
+          }
+        ],
+        "limit": null
+      },
+      "sql_query": "SELECT player, team, pts, reb, ast, net_rtg, off_rtg, def_rtg, plus__minus, dd2, td3 FROM player_stats WHERE team = 'IND' ORDER BY pts DESC"
+    },
+    {
+      "id": 11,
+      "question": "What is the overall narrative and storyline about underdog teams in the playoffs this season?",
+      "type": "mixte_piege",
+      "status": "success",
+      "json_structure": {
+        "table": "player_stats",
+        "columns": [
+          "team",
+          "wins",
+          "losses",
+          "net_rtg",
+          "plus__minus",
+          "player"
+        ],
+        "conditions": [],
+        "order_by": [
+          {
+            "column": "net_rtg",
+            "direction": "ASC"
+          }
+        ],
+        "limit": 10
+      },
+      "sql_query": "SELECT team, wins, losses, net_rtg, plus__minus, player FROM player_stats ORDER BY net_rtg ASC LIMIT 10"
+    },
+    {
+      "id": 12,
+      "question": "D'après les discussions Reddit et les statistiques, pourquoi Reggie Miller est-il considéré comme sous-estimé malgré sa grande efficacité en playoffs ?",
+      "type": "mixte",
+      "status": "success",
+      "json_structure": {
+        "table": "player_stats",
+        "columns": [
+          "player",
+          "team",
+          "pts",
+          "fg_pct",
+          "three_p_pct",
+          "ft_pct",
+          "reb",
+          "ast",
+          "plus__minus",
+          "net_rtg",
+          "off_rtg",
+          "def_rtg",
+          "gp",
+          "wins",
+          "losses"
+        ],
+        "conditions": [
+          {
+            "column": "player",
+            "operator": "LIKE",
+            "value": "%Reggie Miller%"
+          }
+        ],
+        "order_by": [],
+        "limit": null
+      },
+      "sql_query": "SELECT player, team, pts, fg_pct, three_p_pct, ft_pct, reb, ast, plus__minus, net_rtg, off_rtg, def_rtg, gp, wins, losses FROM player_stats WHERE player LIKE '%Reggie Miller%'"
+    },
+    {
+      "id": 13,
+      "question": "Who are the top 3 players by total points (PTS) and what are their teams?",
+      "type": "excel_only",
+      "status": "success",
+      "json_structure": {
+        "table": "player_stats",
+        "columns": [
+          "player",
+          "team",
+          "pts"
+        ],
+        "conditions": [],
+        "order_by": [
+          {
+            "column": "pts",
+            "direction": "DESC"
+          }
+        ],
+        "limit": 3
+      },
+      "sql_query": "SELECT player, team, pts FROM player_stats ORDER BY pts DESC LIMIT 3"
+    },
+    {
+      "id": 15,
+      "question": "Comparing Giannis Antetokounmpo's statistical performance with fan opinions from Reddit, is he living up to his reputation this season?",
+      "type": "mixte",
+      "status": "success",
+      "json_structure": {
+        "table": "player_stats",
+        "columns": [
+          "player",
+          "team",
+          "age",
+          "gp",
+          "pts",
+          "reb",
+          "ast",
+          "blk",
+          "stl",
+          "plus__minus",
+          "net_rtg",
+          "dd2",
+          "td3",
+          "fp"
+        ],
+        "conditions": [
+          {
+            "column": "player",
+            "operator": "LIKE",
+            "value": "%Giannis%"
+          }
+        ],
+        "order_by": [],
+        "limit": 1
+      },
+      "sql_query": "SELECT player, team, age, gp, pts, reb, ast, blk, stl, plus__minus, net_rtg, dd2, td3, fp FROM player_stats WHERE player LIKE '%Giannis%' LIMIT 1"
+    },
+    {
+      "id": 16,
+      "question": "Which team has the best overall win-loss record based on the player data?",
+      "type": "excel_only",
+      "status": "success",
+      "json_structure": {
+        "table": "player_stats",
+        "columns": [
+          "team",
+          "wins",
+          "losses"
+        ],
+        "conditions": [],
+        "order_by": [
+          {
+            "column": "wins",
+            "direction": "DESC"
+          }
+        ],
+        "limit": 1
+      },
+      "sql_query": "SELECT team, wins, losses FROM player_stats ORDER BY wins DESC LIMIT 1"
+    }
+  ]
+}
