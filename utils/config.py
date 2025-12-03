@@ -50,3 +50,9 @@ DB_CONFIG = {
     'password': os.getenv('POSTGRES_PASSWORD', 'FabParis20'),
     'database': os.getenv('POSTGRES_DATABASE', 'nba_stats')
 }
+
+# DATABASE_URL PostgreSQL pour SQLAlchemy (MVP6.4)
+DATABASE_URL_POSTGRES = (
+    f"postgresql+psycopg2://{DB_CONFIG['user']}:{DB_CONFIG['password']}"
+    f"@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
+)
