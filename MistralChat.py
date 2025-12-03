@@ -5,6 +5,7 @@ import logging
 from mistralai import Mistral
 from dotenv import load_dotenv
 from utils.logger import setup_logger, log_timer_start, log_timer_end, log_retrieval, log_generation
+from rag.routeur import route_question
 
 setup_logger()
 
@@ -130,48 +131,75 @@ if prompt := st.chat_input(f"Posez votre question sur la {NAME}..."):
         logging.error("VectorStoreManager non disponible pour la recherche.")
         st.stop()
 
-    # 3. Rechercher le contexte dans le Vector Store
-    try:
-        logging.info(f"Recherche de contexte pour la question: '{prompt}' avec k={SEARCH_K}")
-        search_results = vector_store_manager.search(prompt, k=SEARCH_K)
+    # 3. NOUVEAU : Appel du routeur intelligent
+    logging.info(f"Appel du routeur pour la question: '{prompt}'")
+    routing_result = route_question(prompt, vector_store=vector_store_manager)
+    
+    # 4. Traitement selon la route détectée
+    response_content = None
+    
+    # CAS 1 : SQL ou MIXTE → Réponse directe du routeur
+    if routing_result["route"] in ["SQL", "MIXTE"]:
+        logging.info(f"Route {routing_result['route']} détectée, réponse du routeur")
         
-        # LOG2 : Logger les chunks retournés
-        log_retrieval(search_results, SEARCH_K)
+        if routing_result["error"]:
+            response_content = f"Erreur : {routing_result['error']}"
+            logging.error(f"Erreur route {routing_result['route']}: {routing_result['error']}")
+        else:
+            response_content = routing_result["response"]
+            
+        # LOG : Pas de prompt FAISS, on log directement
+        log_generation(prompt, "Route SQL/MIXTE - Pas de prompt FAISS", response_content)
+    
+    # CAS 2 : FAISS ou FALLBACK → Utiliser la logique FAISS existante
+    elif routing_result["route"] in ["FAISS", "FAISS_FALLBACK"]:
+        logging.info(f"Route {routing_result['route']} détectée, utilisation logique FAISS")
         
-    except Exception as e:
-        st.error(f"Une erreur est survenue lors de la recherche d'informations pertinentes: {e}")
-        logging.exception(f"Erreur pendant vector_store_manager.search pour la query: {prompt}")
-        search_results = []
+        # Rechercher le contexte dans le Vector Store (CODE EXISTANT)
+        try:
+            logging.info(f"Recherche de contexte pour la question: '{prompt}' avec k={SEARCH_K}")
+            search_results = vector_store_manager.search(prompt, k=SEARCH_K)
+            
+            # LOG2 : Logger les chunks retournés
+            log_retrieval(search_results, SEARCH_K)
+            
+        except Exception as e:
+            st.error(f"Une erreur est survenue lors de la recherche d'informations pertinentes: {e}")
+            logging.exception(f"Erreur pendant vector_store_manager.search pour la query: {prompt}")
+            search_results = []
 
-    # 4. Formater le contexte pour le prompt LLM
-    context_str = "\n\n---\n\n".join([
-        f"Source: {res['metadata'].get('source', 'Inconnue')} (Score: {res['score']:.1f}%)\nContenu: {res['text']}"
-        for res in search_results
-    ])
+        # Formater le contexte pour le prompt LLM (CODE EXISTANT)
+        context_str = "\n\n---\n\n".join([
+            f"Source: {res['metadata'].get('source', 'Inconnue')} (Score: {res['score']:.1f}%)\nContenu: {res['text']}"
+            for res in search_results
+        ])
 
-    if not search_results:
-        context_str = "Aucune information pertinente trouvée dans la base de connaissances pour cette question."
-        logging.warning(f"Aucun contexte trouvé pour la query: {prompt}")
+        if not search_results:
+            context_str = "Aucune information pertinente trouvée dans la base de connaissances pour cette question."
+            logging.warning(f"Aucun contexte trouvé pour la query: {prompt}")
 
-    # 5. Construire le prompt final
-    final_prompt_for_llm = SYSTEM_PROMPT.format(context_str=context_str, question=prompt)
-    messages_for_api = [{"role": "user", "content": final_prompt_for_llm}]
+        # Construire le prompt final (CODE EXISTANT)
+        final_prompt_for_llm = SYSTEM_PROMPT.format(context_str=context_str, question=prompt)
+        messages_for_api = [{"role": "user", "content": final_prompt_for_llm}]
 
-    # 6. Afficher indicateur + Générer la réponse
+        # Générer la réponse (CODE EXISTANT)
+        response_content = generer_reponse(messages_for_api)
+        
+        # LOG : Logger question, prompt et réponse (CODE EXISTANT)
+        log_generation(prompt, final_prompt_for_llm, response_content)
+    
+    else:
+        # Route inconnue
+        response_content = "Erreur : route inconnue détectée."
+        logging.error(f"Route inconnue: {routing_result['route']}")
+
+    # 5. Afficher la réponse (COMMUN À TOUS LES CAS)
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         message_placeholder.text("...")
-
-        # Génération de la réponse
-        response_content = generer_reponse(messages_for_api)
-        
-        # LOG3 et LOG4 : Logger question, prompt et réponse
-        log_generation(prompt, final_prompt_for_llm, response_content)
-
-        # Affichage de la réponse
         message_placeholder.write(response_content)
 
-    # 7. Ajouter la réponse à l'historique
+    # 6. Ajouter la réponse à l'historique
     st.session_state.messages.append({"role": "assistant", "content": response_content})
     
     # LOG5 : Fin du timer
