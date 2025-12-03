@@ -22,11 +22,15 @@ import sys
 from pathlib import Path
 import numpy as np
 
+# FIX conflit OpenMP (FAISS + numpy)
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
+
 # Ajouter le chemin du projet pour importer les modules
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from rag.vector_store import VectorStoreManager
+from rag.routeur import route_question
 from utils.config import MISTRAL_API_KEY, MODEL_NAME, SEARCH_K
 from utils.logger import setup_logger, log_timer_start, log_timer_end
 import requests
@@ -181,32 +185,38 @@ def run_evaluation(dataset_path: str, output_path: str):
         print(f"Q: {question[:80]}...")
         
         try:
-            # Récupérer les contexts via FAISS
-            search_results = vector_store.search(question, k=SEARCH_K)
-            contexts = [result['text'] for result in search_results]
+            # Appeler le routeur
+            result = route_question(question, vector_store)
             
-            print(f"✓ {len(contexts)} contexts récupérés")
+            # CAS 1 : Le routeur a généré une réponse (SQL ou MIXTE)
+            if result["response"] is not None:
+                answer = result["response"]
+                contexts = result["contexts"]
+                print(f"✓ Route {result['route']} - Réponse générée ({len(answer)} caractères)")
+                
+            # CAS 2 : Route FAISS (response = None)
+            else:
+                # Ancien code MVP5
+                search_results = vector_store.search(question, k=SEARCH_K)
+                contexts = [res['text'] for res in search_results]
+                answer = generate_answer_with_mistral(question, contexts)
+                print(f"✓ Route FAISS - {len(contexts)} contexts récupérés")
             
-            # Générer la réponse via Mistral
-            answer = generate_answer_with_mistral(question, contexts)
-            print(f"✓ Réponse générée ({len(answer)} caractères)")
-            
-            # Stocker pour RAGAS (AVEC LE TYPE!)
+            # Stocker pour RAGAS
             results.append({
                 "question_id": q_id,
-                "question_type": q_type,  # ← CHAMP AJOUTÉ
+                "question_type": q_type,
                 "question": question,
                 "answer": answer,
                 "contexts": contexts,
                 "ground_truth": ground_truth
             })
-            
+        
         except Exception as e:
             print(f"❌ Erreur pour question #{q_id} : {e}")
-            # Ajouter un résultat vide pour ne pas bloquer l'évaluation
             results.append({
                 "question_id": q_id,
-                "question_type": q_type,  # ← CHAMP AJOUTÉ ICI AUSSI
+                "question_type": q_type,
                 "question": question,
                 "answer": f"[ERREUR: {str(e)}]",
                 "contexts": [""],

@@ -85,10 +85,14 @@ def route_question(question: str, vector_store: VectorStoreManager = None) -> di
                 
                 # Formatage réponse naturelle
                 formatted_response = format_sql_only(question, sql_results)
+
+                # ⚠️ Formatage du contexte
+                formatted_contexts = [str(row) for row in sql_results]
                 
                 return {
                     "route": "SQL",
                     "response": formatted_response,
+                    "contexts": formatted_contexts, # ⚠️
                     "error": None
                 }
                 
@@ -136,10 +140,14 @@ def route_question(question: str, vector_store: VectorStoreManager = None) -> di
                 
                 # Fusion formatage
                 formatted_response = format_sql_mixte(question, sql_results, faiss_context)
+
+                # ⚠️ Formatage contexte mixte
+                formatted_contexts = [str(row) for row in sql_results] + [chunk["text"] for chunk in faiss_results]
                 
                 return {
                     "route": "MIXTE",
                     "response": formatted_response,
+                    "contexts": formatted_contexts, # ⚠️
                     "error": None
                 }
                 
