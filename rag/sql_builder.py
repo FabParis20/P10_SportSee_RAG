@@ -7,13 +7,18 @@ Construit une requête SQL à partir d'une structure Pydantic validée.
 import sys
 from pathlib import Path
 
+import logfire
+
+# Configuration Logfire
+logfire.configure()
+
 # Ajouter le répertoire parent au path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from schemas.sql_models import SQLQueryInput, SQLCondition, SQLOrderBy
 
-
+@logfire.instrument()
 def build_sql_query(validated_structure: SQLQueryInput) -> str:
     """
     Construit une requête SQL depuis une structure Pydantic validée.

@@ -13,6 +13,11 @@ import logging
 from sqlalchemy import create_engine, text
 from utils.config import DATABASE_URL_POSTGRES as DATABASE_URL
 
+import logfire
+
+# Configuration Logfire
+logfire.configure()
+
 # Configuration du logger
 logger = logging.getLogger(__name__)
 if not logger.handlers:
@@ -32,7 +37,7 @@ def log_timer_end(temps_debut):
     """Calcule la durée"""
     return round(time.time() - temps_debut, 2)
 
-
+@logfire.instrument()
 def execute_sql_query(query: str) -> list[dict]:
     """
     Exécute une requête SQL dans PostgreSQL et retourne les résultats.

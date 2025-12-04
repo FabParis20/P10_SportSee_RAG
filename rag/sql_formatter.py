@@ -7,13 +7,18 @@ import logging
 from mistralai import Mistral
 from utils.config import MISTRAL_API_KEY, MODEL_NAME
 
+import logfire
+
+# Configuration Logfire
+logfire.configure()
+
 # Configuration du logger
 logger = logging.getLogger(__name__)
 
 # Initialisation client Mistral
 client = Mistral(api_key=MISTRAL_API_KEY)
 
-
+@logfire.instrument()
 def format_sql_only(question: str, sql_results: list[dict]) -> str:
     """
     Formate les résultats SQL bruts en réponse naturelle.
@@ -62,7 +67,7 @@ RÉPONSE :"""
         logger.error(f"Erreur formatage SQL only: {e}")
         return f"Erreur lors du formatage de la réponse: {str(e)}"
 
-
+@logfire.instrument()
 def format_sql_mixte(question: str, sql_results: list[dict], faiss_context: str) -> str:
     """
     Fusionne résultats SQL + contexte FAISS en réponse naturelle.

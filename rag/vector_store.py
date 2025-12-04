@@ -12,6 +12,11 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document # Utilisé pour le format attendu par le splitter
 import time
 
+import logfire
+
+# Configuration Logfire
+logfire.configure()
+
 from utils.config import (
     MISTRAL_API_KEY, EMBEDDING_MODEL, EMBEDDING_BATCH_SIZE,
     FAISS_INDEX_FILE, DOCUMENT_CHUNKS_FILE, CHUNK_SIZE, CHUNK_OVERLAP
@@ -209,7 +214,8 @@ class VectorStoreManager:
             logging.info("Index et chunks sauvegardés avec succès.")
         except Exception as e:
             logging.error(f"Erreur lors de la sauvegarde de l'index/chunks: {e}")
-
+            
+    @logfire.instrument()
     def search(self, query_text: str, k: int = 5, min_score: float = None) -> List[Dict[str, any]]:
         """
         Recherche les k chunks les plus pertinents pour une requête.

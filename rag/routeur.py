@@ -16,11 +16,15 @@ from rag.sql_executor import execute_sql_query
 from rag.sql_formatter import format_sql_only, format_sql_mixte
 from rag.vector_store import VectorStoreManager
 from schemas.sql_models import SQLQueryInput
+import logfire
+
+# Configuration Logfire
+logfire.configure()
 
 # Configuration du logger
 logger = logging.getLogger(__name__)
 
-
+@logfire.instrument()
 def route_question(question: str, vector_store: VectorStoreManager = None) -> dict:
     """
     Orchestre le traitement complet d'une question : classification → exécution → formatage.
@@ -128,8 +132,16 @@ def route_question(question: str, vector_store: VectorStoreManager = None) -> di
             
             try:
                 # Partie SQL
+                # Partie SQL
                 json_structure = generate_sql_structure(question)
-                sql_query = build_sql_query(json_structure)
+                
+                # Validation Pydantic INPUT
+                from schemas.sql_models import SQLQueryInput
+                validated_input = SQLQueryInput(**json_structure)
+                logger.info("Structure MIXTE validée par Pydantic")
+                
+                # Construction requête SQL
+                sql_query = build_sql_query(validated_input)
                 sql_results = execute_sql_query(sql_query)
                 logger.info(f"Résultats SQL: {len(sql_results)} lignes")
                 

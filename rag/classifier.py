@@ -12,6 +12,11 @@ sys.path.insert(0, str(project_root))
 from mistralai import Mistral
 from utils.config import MISTRAL_API_KEY, MODEL_NAME
 
+import logfire
+
+# Configuration Logfire
+logfire.configure()
+
 logger = logging.getLogger(__name__)
 
 # Chemin vers le dictionnaire des colonnes SQL
@@ -73,7 +78,7 @@ def load_database_schema() -> str:
         logger.error(f"Erreur chargement dictionnaire: {e}")
         return "Erreur: impossible de charger le schéma de la base de données"
 
-
+@logfire.instrument()
 def classify_question(question: str) -> dict:
     """
     Classifie une question vers SQL, FAISS, ou MIXTE.

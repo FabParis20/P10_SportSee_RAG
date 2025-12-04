@@ -10,6 +10,11 @@ import pandas as pd
 from pathlib import Path
 from mistralai import Mistral
 
+import logfire
+
+# Configuration Logfire
+logfire.configure()
+
 # Ajouter le répertoire parent au path pour pouvoir importer utils
 import sys
 project_root = Path(__file__).parent.parent
@@ -103,6 +108,7 @@ def format_teams_for_prompt():
 # FONCTION PRINCIPALE DE GÉNÉRATION
 # ============================================================================
 
+@logfire.instrument()
 def generate_sql_structure(question: str) -> dict:
     """
     Génère une structure SQL (format JSON) depuis une question utilisateur.
