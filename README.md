@@ -238,14 +238,6 @@ graph TB
 - Pipeline : Question → Embeddings → Recherche similarité → Contexts → LLM synthèse
 - Temps : 8-17 secondes
 
-**Exemple concret :**
-```
-Question : "Qui a le plus de points cette saison ?"
-→ Route SQL détectée
-→ Requête PostgreSQL générée et exécutée
-→ Réponse : "Shai Gilgeous-Alexander (OKC) avec 32.7 PTS"
-→ Temps : 3.2 secondes
-```
 
 ### Stack technique
 
