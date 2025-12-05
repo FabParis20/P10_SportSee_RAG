@@ -478,7 +478,7 @@ L'architecture hybride SQL/FAISS valide l'hypothèse initiale : accès direct Po
 
 ### Annexe A : Dataset complet des 16 questions
 
-[questions_evaluation.json](data/evaluation/questions_evaluation.json)
+[questions_evaluation.json](data/evaluation/evaluation_dataset.json)
 
 ### Annexe B : Résultats détaillés RAGAS par question
 
