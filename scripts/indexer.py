@@ -2,6 +2,12 @@
 import argparse
 import logging
 from typing import Optional
+import sys
+from pathlib import Path
+
+# Ajouter racine projet au path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 from utils.config import INPUT_DIR # INPUT_DATA_URL (décommentez si besoin)
 from utils.data_loader import download_and_extract_zip, load_and_parse_files
